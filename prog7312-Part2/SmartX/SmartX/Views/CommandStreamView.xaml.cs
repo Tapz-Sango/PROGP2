@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -14,27 +13,32 @@ namespace SmartX.Views
     {
         private readonly ApiService _api = new();
         private readonly DispatcherTimer _autoStream = new() { Interval = TimeSpan.FromMilliseconds(1800) };
+        private readonly DispatcherTimer _chartTick = new() { Interval = TimeSpan.FromMilliseconds(2000) };
         private List<Device> _allDevices = new();
         private readonly Random _rnd = new();
-
-        // Guards against the filter firing before the view is fully initialised.
         private bool _isReady;
 
         public CommandStreamView()
         {
             InitializeComponent();
-
             _autoStream.Tick += AutoStream_Tick;
+            _chartTick.Tick += ChartTick_Tick;
 
             Loaded += async (_, __) =>
             {
                 await LoadDevicesAsync();
                 await LoadHistoryAsync();
                 await LoadInsightsAsync();
-                _isReady = true;   // only NOW do we allow filtering
+                await RefreshChartAsync();
+                _chartTick.Start();
+                _isReady = true;
             };
 
-            Unloaded += (_, __) => _autoStream.Stop();
+            Unloaded += (_, __) =>
+            {
+                _autoStream.Stop();
+                _chartTick.Stop();
+            };
         }
 
         private async System.Threading.Tasks.Task LoadDevicesAsync()
@@ -56,36 +60,53 @@ namespace SmartX.Views
             LstInsights.ItemsSource = insights;
         }
 
-        // ---------------------------------------------------------------
-        // Guarded filter. Safe to call from constructor-time events.
-        // ---------------------------------------------------------------
+        private async System.Threading.Tasks.Task RefreshChartAsync()
+        {
+            try
+            {
+                var points = await _api.GetTimelineAsync(take: 40);
+                var chartPoints = points
+                    .OrderBy(p => p.Timestamp)
+                    .Select(p => (p.Timestamp, p.Value, p.IsCritical))
+                    .ToList();
+                Chart.SetPoints(chartPoints);
+            }
+            catch { /* silent */ }
+        }
+
+        private async void ChartTick_Tick(object? sender, EventArgs e)
+        {
+            await RefreshChartAsync();
+            await UpdateQueuePillsAsync();
+        }
+
+        private async System.Threading.Tasks.Task UpdateQueuePillsAsync()
+        {
+            var snapshot = await _api.GetQueueSnapshotAsync();
+            if (snapshot != null)
+            {
+                TxtCriticalCount.Text = $"CRITICAL: {snapshot.Critical?.Count ?? 0}";
+                TxtFifoCount.Text = $"FIFO: {snapshot.Standard?.Count ?? 0}";
+            }
+        }
+
+        // ---- Filter (guarded against constructor-time events) ----
         private void ApplyFilter()
         {
-            // 1) Not initialised yet → do nothing. WPF may fire
-            //    SelectionChanged / TextChanged before fields exist.
             if (!_isReady || TxtSearch == null || DgDevices == null) return;
-
-            // 2) Null-safe device list (defensive — LoadDevicesAsync
-            //    always sets this, but the guard costs nothing).
             var devices = _allDevices ?? new List<Device>();
-
             string term = TxtSearch.Text?.Trim() ?? "";
             string? cat = (CmbCategory?.SelectedItem as ComboBoxItem)?.Content?.ToString();
             string? state = (CmbAlertState?.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
             var filtered = devices.AsEnumerable();
-
             if (!string.IsNullOrWhiteSpace(term))
-            {
                 filtered = filtered.Where(d =>
                     (d.MacAddress ?? "").Contains(term, StringComparison.OrdinalIgnoreCase) ||
                     (d.Name ?? "").Contains(term, StringComparison.OrdinalIgnoreCase) ||
                     (d.Location ?? "").Contains(term, StringComparison.OrdinalIgnoreCase));
-            }
-
             if (!string.IsNullOrWhiteSpace(cat) && cat != "All")
                 filtered = filtered.Where(d => (d.Category ?? "").Equals(cat, StringComparison.OrdinalIgnoreCase));
-
             if (!string.IsNullOrWhiteSpace(state) && state != "All")
                 filtered = filtered.Where(d => (d.AlertState ?? "").Equals(state, StringComparison.OrdinalIgnoreCase));
 
@@ -95,25 +116,19 @@ namespace SmartX.Views
         private async void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
             ApplyFilter();
-
-            // Only hit the predictive engine once the user is really typing
-            // something meaningful, and only after the view is ready.
             if (!_isReady) return;
-
             var term = TxtSearch.Text?.Trim();
             if (string.IsNullOrEmpty(term) || term.Length < 3) return;
 
             var cat = (CmbCategory?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
             var suggestions = await _api.LogSearchAsync(term, cat);
             var insights = await _api.GetInsightsAsync();
-
-            var merged = suggestions.Concat(insights).ToList();
-            LstInsights.ItemsSource = merged;
+            LstInsights.ItemsSource = suggestions.Concat(insights).ToList();
         }
 
         private void Filter_Changed(object sender, SelectionChangedEventArgs e)
         {
-            if (!_isReady) return;   // prevent firing before Loaded
+            if (!_isReady) return;
             ApplyFilter();
         }
 
@@ -123,7 +138,27 @@ namespace SmartX.Views
             await LoadInsightsAsync();
         }
 
-        // ---- Command issuing ----
+        private void DgDevices_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DgDevices.SelectedItem is Device d)
+            {
+                TxtSelectedDevice.Text = $"Selected: {d.Name} ({d.MacAddress})";
+                TxtSelectedForChart.Text = $"{d.Name}";
+                _ = LoadChartForDeviceAsync(d.MacAddress);
+            }
+        }
+
+        private async System.Threading.Tasks.Task LoadChartForDeviceAsync(string mac)
+        {
+            var points = await _api.GetTimelineAsync(mac, take: 40);
+            var chartPoints = points
+                .OrderBy(p => p.Timestamp)
+                .Select(p => (p.Timestamp, p.Value, p.IsCritical))
+                .ToList();
+            Chart.SetPoints(chartPoints);
+        }
+
+        // ---- Commands ----
         private async void BtnPumpOn_Click(object sender, RoutedEventArgs e) => await IssueCommandAsync("PUMP_ON");
         private async void BtnPumpOff_Click(object sender, RoutedEventArgs e) => await IssueCommandAsync("PUMP_OFF");
         private async void BtnRelayToggle_Click(object sender, RoutedEventArgs e) => await IssueCommandAsync("RELAY_TOGGLE");
@@ -135,17 +170,13 @@ namespace SmartX.Views
                 MessageBox.Show("Select a device first.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
-
             bool ok = await _api.IssueCommandAsync(dev.MacAddress, command, dev.AlertState);
             if (ok)
             {
                 await LoadHistoryAsync();
                 await LoadInsightsAsync();
             }
-            else
-            {
-                MessageBox.Show("Command failed. Check API connectivity.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            else MessageBox.Show("Command failed. Check API connectivity.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         private async void BtnUndo_Click(object sender, RoutedEventArgs e)
@@ -153,22 +184,17 @@ namespace SmartX.Views
             var result = await _api.UndoLastCommandAsync();
             MessageBox.Show(result?.Message ?? "Nothing to undo.", "Undo", MessageBoxButton.OK, MessageBoxImage.Information);
             await LoadHistoryAsync();
+            await LoadInsightsAsync();
         }
 
         // ---- Simulator ----
         private async void BtnSimulateNormal_Click(object sender, RoutedEventArgs e)
-            => await SendRandomTelemetryAsync(forceCritical: false);
+            => await SendRandomTelemetryAsync(false);
 
         private async void BtnSimulateCritical_Click(object sender, RoutedEventArgs e)
-            => await SendRandomTelemetryAsync(forceCritical: true);
+            => await SendRandomTelemetryAsync(true);
 
-        private async void BtnStartAuto_Click(object sender, RoutedEventArgs e)
-        {
-            _autoStream.Start();
-            MessageBox.Show("Auto-stream started. Normal telemetry every ~2s, random critical spike every ~6s.",
-                "Simulator", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
+        private void BtnStartAuto_Click(object sender, RoutedEventArgs e) => _autoStream.Start();
         private void BtnStopAuto_Click(object sender, RoutedEventArgs e) => _autoStream.Stop();
 
         private async void AutoStream_Tick(object? sender, EventArgs e)
@@ -184,17 +210,18 @@ namespace SmartX.Views
 
             double value;
             string unit;
-            if (dev.Category != null && dev.Category.Contains("Moisture", StringComparison.OrdinalIgnoreCase))
+            var cat = dev.Category ?? "";
+            if (cat.Contains("Moisture", StringComparison.OrdinalIgnoreCase))
             {
                 value = forceCritical ? _rnd.Next(5, 19) : _rnd.Next(30, 80);
                 unit = "%";
             }
-            else if (dev.Category != null && dev.Category.Contains("Power", StringComparison.OrdinalIgnoreCase))
+            else if (cat.Contains("Power", StringComparison.OrdinalIgnoreCase))
             {
                 value = forceCritical ? _rnd.Next(2100, 3500) : _rnd.Next(300, 1800);
                 unit = "W";
             }
-            else if (dev.Category != null && dev.Category.Contains("Temperature", StringComparison.OrdinalIgnoreCase))
+            else if (cat.Contains("Temperature", StringComparison.OrdinalIgnoreCase))
             {
                 value = forceCritical ? _rnd.Next(36, 48) : _rnd.Next(18, 32);
                 unit = "°C";
@@ -206,41 +233,10 @@ namespace SmartX.Views
             }
 
             await _api.IngestTelemetryAsync(dev.MacAddress, value, unit, forceCritical);
-
             await LoadDevicesAsync();
             await UpdateQueuePillsAsync();
             await LoadInsightsAsync();
-        }
-
-        private async System.Threading.Tasks.Task UpdateQueuePillsAsync()
-        {
-            try
-            {
-                using var http = new System.Net.Http.HttpClient { BaseAddress = new Uri("http://localhost:5245") };
-                if (!string.IsNullOrEmpty(AuthSession.Token))
-                    http.DefaultRequestHeaders.Authorization =
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AuthSession.Token);
-
-                var res = await http.GetFromJsonAsync<QueueSnapshot>("/api/telemetry/queue");
-                if (res != null)
-                {
-                    TxtCriticalCount.Text = $"CRITICAL: {res.Critical?.Count ?? 0}";
-                    TxtFifoCount.Text = $"FIFO: {res.Standard?.Count ?? 0}";
-                }
-            }
-            catch { /* silent — pills are cosmetic */ }
-        }
-
-        private void BtnBack_Click(object sender, RoutedEventArgs e)
-        {
-            _autoStream.Stop();
-            MainWindow.Instance!.NavigateTo(new GatewayMenuView());
-        }
-
-        private class QueueSnapshot
-        {
-            public List<object>? Standard { get; set; }
-            public List<object>? Critical { get; set; }
+            await RefreshChartAsync();
         }
     }
 }

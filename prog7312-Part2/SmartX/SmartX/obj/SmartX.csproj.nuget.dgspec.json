@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\SmartX.csproj": {}
+    "C:\\Users\\emeris\\Desktop\\PROGP2\\prog7312-Part2\\SmartX\\SmartX\\SmartX.csproj": {}
   },
   "projects": {
-    "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\SmartX.csproj": {
+    "C:\\Users\\emeris\\Desktop\\PROGP2\\prog7312-Part2\\SmartX\\SmartX\\SmartX.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\SmartX.csproj",
+        "projectUniqueName": "C:\\Users\\emeris\\Desktop\\PROGP2\\prog7312-Part2\\SmartX\\SmartX\\SmartX.csproj",
         "projectName": "SmartX",
-        "projectPath": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\SmartX.csproj",
+        "projectPath": "C:\\Users\\emeris\\Desktop\\PROGP2\\prog7312-Part2\\SmartX\\SmartX\\SmartX.csproj",
         "packagesPath": "C:\\Users\\emeris\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\obj\\",
+        "outputPath": "C:\\Users\\emeris\\Desktop\\PROGP2\\prog7312-Part2\\SmartX\\SmartX\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

@@ -2,6 +2,9 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup />
   <ItemGroup>
+    <Compile Update="Controls\SparklineChart.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\CommandStreamView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -12,6 +15,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Views\LoginView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\MainShellView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Views\MeshMatrixView.xaml.cs">

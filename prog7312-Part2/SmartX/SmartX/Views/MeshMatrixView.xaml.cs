@@ -10,29 +10,16 @@ namespace SmartX.Views
 {
     public partial class MeshMatrixView : UserControl
     {
-        // ---------------------------------------------------------------
-        // DispatcherTimer drives the simulated mesh packet loop.
-        // Every tick we generate a fresh reading for each online node,
-        // push it to the API (as a real device would), then evaluate
-        // local thresholds to decide whether to flash the node red.
-        // ---------------------------------------------------------------
         private readonly DispatcherTimer _timer = new();
         private readonly ApiService _apiService = new();
         private readonly Random _rnd = new();
 
-        // ObservableCollection so the ListBox updates as alerts arrive.
         private readonly ObservableCollection<AlertRow> _alerts = new();
-
-        // HashSet semantics on the client: we suppress the same alert
-        // from appearing twice within a short window. The API already
-        // deduplicates on its side using its own HashSet, but keeping a
-        // client-side guard keeps the UI tidy when the timer fires fast.
         private readonly System.Collections.Generic.HashSet<string> _recentKeys = new();
 
-        // MACs of the three online nodes in the radar view.
-        private const string Node1Mac = "AD:76:E3:5F:59:93"; // Temperature
-        private const string Node2Mac = "C8:2B:96:11:02:AA"; // Power
-        private const string Node3Mac = "1C:46:79:A5:5C:E5"; // Actuator (Pump)
+        private const string Node1Mac = "AD:76:E3:5F:59:93";
+        private const string Node2Mac = "C8:2B:96:11:02:AA";
+        private const string Node3Mac = "1C:46:79:A5:5C:E5";
 
         public MeshMatrixView()
         {
@@ -47,64 +34,35 @@ namespace SmartX.Views
             Unloaded += (_, __) => _timer.Stop();
         }
 
-        // ---------------------------------------------------------------
-        // Every 1.5s: generate readings, push them to the API, update UI,
-        // and raise automatic alerts when thresholds are breached.
-        // ---------------------------------------------------------------
         private async void Timer_Tick(object? sender, EventArgs e)
         {
-            // ---------------- Node 1: Temperature ----------------
-            double temp = Math.Round(18.0 + _rnd.NextDouble() * 22.0, 1); // 18 - 40 °C
+            // Node 1 — Temperature
+            double temp = Math.Round(18.0 + _rnd.NextDouble() * 22.0, 1);
             Val1.Text = $"Telemetry: {temp} °C";
-
             bool tempAlert = temp > 35.0;
             ApplyNodeState(Node1, Dot1, tempAlert);
-
-            // Push to API regardless — this is what a real device would do.
             await _apiService.IngestTelemetryAsync(Node1Mac, temp, "°C", tempAlert);
-
             if (tempAlert)
-            {
-                RaiseAlert(
-                    nodeName: "NODE-ESP-01",
-                    mac: Node1Mac,
-                    message: $"Temperature {temp} °C exceeds safe threshold of 35 °C",
-                    severity: "Critical");
-            }
+                RaiseAlert("NODE-ESP-01", Node1Mac, $"Temperature {temp} °C exceeds 35 °C", "Critical");
 
-            // ---------------- Node 2: Power ----------------
-            int watts = _rnd.Next(400, 2500); // 400 - 2500 W
+            // Node 2 — Power
+            int watts = _rnd.Next(400, 2500);
             Val2.Text = $"Telemetry: {watts} W";
-
             bool powerAlert = watts > 2000;
             ApplyNodeState(Node2, Dot2, powerAlert);
-
             await _apiService.IngestTelemetryAsync(Node2Mac, watts, "W", powerAlert);
-
             if (powerAlert)
-            {
-                RaiseAlert(
-                    nodeName: "NODE-ESP-02",
-                    mac: Node2Mac,
-                    message: $"Power spike {watts} W exceeds safe threshold of 2000 W",
-                    severity: "Critical");
-            }
+                RaiseAlert("NODE-ESP-02", Node2Mac, $"Power spike {watts} W exceeds 2000 W", "Critical");
 
-            // ---------------- Node 3: Actuator heartbeat ----------------
-            // Valve state toggles occasionally to simulate real activity.
+            // Node 3 — Actuator heartbeat
             bool valveActive = _rnd.NextDouble() > 0.15;
             Val3.Text = $"Valve: {(valveActive ? "ACTIVE" : "IDLE")}";
-            ApplyNodeState(Node3, Dot3, alert: false); // actuator itself never alerts here
-
-            // Actuator heartbeat value: 1 = on, 0 = off.
+            ApplyNodeState(Node3, Dot3, alert: false);
             await _apiService.IngestTelemetryAsync(Node3Mac, valveActive ? 1 : 0, "STATE", false);
 
             TxtAlertCount.Text = $"Total alerts: {_alerts.Count}";
         }
 
-        // ---------------------------------------------------------------
-        // Colour the node card and status dot based on alert state.
-        // ---------------------------------------------------------------
         private void ApplyNodeState(Border node, System.Windows.Shapes.Ellipse dot, bool alert)
         {
             if (alert)
@@ -120,14 +78,8 @@ namespace SmartX.Views
             }
         }
 
-        // ---------------------------------------------------------------
-        // Raise a UI alert, applying the same dedup rule the API uses:
-        // identical (mac + message) pairs within the same second are
-        // collapsed so the feed does not spam.
-        // ---------------------------------------------------------------
         private void RaiseAlert(string nodeName, string mac, string message, string severity)
         {
-            // Client-side HashSet gate
             string key = $"{mac}::{message}::{DateTime.UtcNow:HH:mm}";
             if (!_recentKeys.Add(key)) return;
 
@@ -146,18 +98,10 @@ namespace SmartX.Views
                 }
             });
 
-            // Keep the feed bounded.
             while (_alerts.Count > 50) _alerts.RemoveAt(_alerts.Count - 1);
-
-            // Also persist the alert on the API so it shows up in the
-            // operator's history (/api/issues) — but we do NOT await it
-            // because UI responsiveness matters more than order here.
             _ = _apiService.PostIssueAsync($"[{nodeName}] {message}");
         }
 
-        // ---------------------------------------------------------------
-        // Clear the local feed (does not clear the API-side log).
-        // ---------------------------------------------------------------
         private void BtnClearFeed_Click(object sender, RoutedEventArgs e)
         {
             _alerts.Clear();
@@ -165,19 +109,14 @@ namespace SmartX.Views
             TxtAlertCount.Text = "Total alerts: 0";
         }
 
-        // ---------------------------------------------------------------
-        // Navigation back to the gateway menu.
-        // ---------------------------------------------------------------
+        // ---- Back button — now uses central NavigationService ----
         private void BtnBack_Click(object sender, RoutedEventArgs e)
         {
             _timer.Stop();
-            MainWindow.Instance!.NavigateTo(new GatewayMenuView());
+            NavigationService.PopOverlayOrGoToShell();
         }
     }
 
-    // ---------------------------------------------------------------
-    // Simple DTO for the ListBox binding.
-    // ---------------------------------------------------------------
     public class AlertRow
     {
         public DateTime Timestamp { get; set; }

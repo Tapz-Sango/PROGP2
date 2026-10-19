@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using SmartX.Collections;
 using SmartX.Models;
+using SmartX.Services;
 
 namespace SmartX.Views
 {
@@ -44,13 +45,16 @@ namespace SmartX.Views
             DgTelemetry.ItemsSource = _buffer.OptimizedList;
         }
 
-        // Added event handler
         private void DgTelemetry_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Optional to Handle selection logic for DgTelemetry here if needed
         }
 
-        private void BtnBack_Click(object sender, RoutedEventArgs e) => MainWindow.Instance!.NavigateTo(new SensorIngestionView());
-        private void BtnMesh_Click(object sender, RoutedEventArgs e) => MainWindow.Instance!.NavigateTo(new MeshMatrixView());
+        // ---- Back button — goes back to the shell (or previous overlay) ----
+        private void BtnBack_Click(object sender, RoutedEventArgs e)
+            => NavigationService.PopOverlayOrGoToShell();
+
+        // ---- Mesh shortcut — opens as a nested overlay ----
+        private void BtnMesh_Click(object sender, RoutedEventArgs e)
+            => NavigationService.PushOverlay(new MeshMatrixView());
     }
 }

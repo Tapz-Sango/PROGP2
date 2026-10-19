@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using SmartX.Services;
 
 namespace SmartX.Views
 {
@@ -7,16 +8,17 @@ namespace SmartX.Views
     {
         public GatewayMenuView() => InitializeComponent();
 
+        // These all navigate within the shell as overlays so Back always returns.
         private void BtnSensorIngestion_Click(object sender, RoutedEventArgs e)
-            => MainWindow.Instance!.NavigateTo(new SensorIngestionView());
+            => NavigationService.PushOverlay(new SensorIngestionView());
 
         private void BtnCommandStream_Click(object sender, RoutedEventArgs e)
-            => MainWindow.Instance!.NavigateTo(new CommandStreamView());
+            => NavigationService.GoToCommandStreamTab();
 
         private void BtnTelemetryStream_Click(object sender, RoutedEventArgs e)
-            => MainWindow.Instance!.NavigateTo(new TelemetryStreamView());
+            => NavigationService.PushOverlay(new TelemetryStreamView());
 
         private void BtnMeshMatrix_Click(object sender, RoutedEventArgs e)
-            => MainWindow.Instance!.NavigateTo(new MeshMatrixView());
+            => NavigationService.PushOverlay(new MeshMatrixView());
     }
 }

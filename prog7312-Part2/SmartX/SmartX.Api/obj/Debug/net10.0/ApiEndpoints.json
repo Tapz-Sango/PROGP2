@@ -17,33 +17,6 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec__DisplayClass0_0",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__16",
-    "RelativePath": "api/alerts/clear",
-    "HttpMethod": "POST",
-    "IsController": false,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "mac",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "reason",
-        "Type": "System.String",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "System.Void",
-        "MediaTypes": [],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "Program\u002B\u003C\u003Ec__DisplayClass0_0",
     "Method": "\u003C\u003CMain\u003E$\u003Eb__1",
     "RelativePath": "api/auth/login",
     "HttpMethod": "POST",
@@ -173,6 +146,11 @@
         "Name": "alertState",
         "Type": "System.String",
         "IsRequired": false
+      },
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": [
@@ -185,7 +163,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec__DisplayClass0_0",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__18",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__17",
     "RelativePath": "api/insights",
     "HttpMethod": "GET",
     "IsController": false,
@@ -201,7 +179,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec__DisplayClass0_0",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__19",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__18",
     "RelativePath": "api/issues",
     "HttpMethod": "GET",
     "IsController": false,
@@ -217,7 +195,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec__DisplayClass0_0",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__20",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__19",
     "RelativePath": "api/issues",
     "HttpMethod": "POST",
     "IsController": false,
@@ -239,7 +217,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec__DisplayClass0_0",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__17",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__16",
     "RelativePath": "api/search",
     "HttpMethod": "POST",
     "IsController": false,

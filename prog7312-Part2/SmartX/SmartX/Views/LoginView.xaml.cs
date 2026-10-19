@@ -14,14 +14,19 @@ namespace SmartX.Views
         {
             TxtError.Visibility = Visibility.Collapsed;
             BtnLogin.IsEnabled = false;
+
             try
             {
-                bool success = await _apiService.AuthenticateAsync(TxtEmail.Text.Trim(), TxtPassword.Password);
-                if (success)
-                    MainWindow.Instance!.NavigateTo(new GatewayMenuView());
+                var (ok, error) = await _apiService.AuthenticateAsync(TxtEmail.Text.Trim(), TxtPassword.Password);
+                if (ok)
+                {
+                    // Route through the central service so the shell becomes
+                    // the active root and overlay stack is reset.
+                    NavigationService.GoToShell();
+                }
                 else
                 {
-                    TxtError.Text = "Authentication failed. Check your credentials.";
+                    TxtError.Text = error ?? "Authentication failed.";
                     TxtError.Visibility = Visibility.Visible;
                 }
             }
@@ -30,7 +35,6 @@ namespace SmartX.Views
 
         private void BtnGuest_Click(object sender, RoutedEventArgs e)
         {
-            // Provide guest demo credentials so markers can bypass the API call
             TxtEmail.Text = "guest@smartx.io";
             TxtPassword.Password = "admin123";
         }

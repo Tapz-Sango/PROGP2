@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 using SmartX.Models;
 
@@ -19,7 +20,6 @@ namespace SmartX.Services
             _http = new HttpClient { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(15) };
         }
 
-        // Attaches the bearer token to every outbound call
         private void AttachAuth()
         {
             _http.DefaultRequestHeaders.Authorization = AuthSession.IsAuthenticated
@@ -27,23 +27,25 @@ namespace SmartX.Services
                 : null;
         }
 
-        // --- AUTH ---
-        public async Task<bool> AuthenticateAsync(string email, string password)
+        // ---------- AUTH ----------
+        public async Task<(bool Ok, string? Error)> AuthenticateAsync(string email, string password)
         {
             try
             {
                 var res = await _http.PostAsJsonAsync("/api/auth/login", new { Email = email, Password = password });
-                if (!res.IsSuccessStatusCode) return false;
-
+                if (!res.IsSuccessStatusCode)
+                {
+                    var err = await res.Content.ReadAsStringAsync();
+                    return (false, err);
+                }
                 var payload = await res.Content.ReadFromJsonAsync<LoginResponse>();
-                if (payload == null) return false;
-
+                if (payload == null) return (false, "Empty response");
                 AuthSession.Token = payload.Token;
                 AuthSession.Email = payload.Email;
                 AuthSession.ExpiresUtc = payload.ExpiresUtc;
-                return true;
+                return (true, null);
             }
-            catch { return false; }
+            catch (Exception ex) { return (false, ex.Message); }
         }
 
         public void Logout()
@@ -52,48 +54,27 @@ namespace SmartX.Services
             AuthSession.Email = null;
         }
 
-        // --- DEVICES (Dictionary on API side) ---
+        // ---------- DEVICES ----------
         public async Task<List<Device>> GetDevicesAsync()
         {
-            try
-            {
-                AttachAuth();
-                return await _http.GetFromJsonAsync<List<Device>>("/api/devices") ?? new();
-            }
+            try { AttachAuth(); return await _http.GetFromJsonAsync<List<Device>>("/api/devices") ?? new(); }
             catch { return new(); }
         }
 
-        public async Task<List<Device>> FilterDevicesAsync(string? category, string? alertState)
+        public async Task<bool> RegisterSensorAsync(object payload)
         {
-            try
-            {
-                AttachAuth();
-                var url = $"/api/devices/filter?category={Uri.EscapeDataString(category ?? "")}&alertState={Uri.EscapeDataString(alertState ?? "")}";
-                return await _http.GetFromJsonAsync<List<Device>>(url) ?? new();
-            }
-            catch { return new(); }
-        }
-
-        public async Task<bool> RegisterSensorAsync(object sensor)
-        {
-            try
-            {
-                AttachAuth();
-                var res = await _http.PostAsJsonAsync("/api/sensors", sensor);
-                return res.IsSuccessStatusCode;
-            }
+            try { AttachAuth(); return (await _http.PostAsJsonAsync("/api/sensors", payload)).IsSuccessStatusCode; }
             catch { return false; }
         }
 
-        // --- TELEMETRY ---
+        // ---------- TELEMETRY ----------
         public async Task<bool> IngestTelemetryAsync(string mac, double value, string unit, bool isCritical = false)
         {
             try
             {
                 AttachAuth();
-                var res = await _http.PostAsJsonAsync("/api/telemetry/ingest",
-                    new { MacAddress = mac, Value = value, Unit = unit, IsCritical = isCritical });
-                return res.IsSuccessStatusCode;
+                return (await _http.PostAsJsonAsync("/api/telemetry/ingest",
+                    new { MacAddress = mac, Value = value, Unit = unit, IsCritical = isCritical })).IsSuccessStatusCode;
             }
             catch { return false; }
         }
@@ -111,15 +92,20 @@ namespace SmartX.Services
             catch { return new(); }
         }
 
-        // --- COMMANDS + UNDO ---
+        public async Task<QueueSnapshot?> GetQueueSnapshotAsync()
+        {
+            try { AttachAuth(); return await _http.GetFromJsonAsync<QueueSnapshot>("/api/telemetry/queue"); }
+            catch { return null; }
+        }
+
+        // ---------- COMMANDS ----------
         public async Task<bool> IssueCommandAsync(string mac, string command, string previousState)
         {
             try
             {
                 AttachAuth();
-                var res = await _http.PostAsJsonAsync("/api/commands",
-                    new { MacAddress = mac, Command = command, PreviousState = previousState });
-                return res.IsSuccessStatusCode;
+                return (await _http.PostAsJsonAsync("/api/commands",
+                    new { MacAddress = mac, Command = command, PreviousState = previousState })).IsSuccessStatusCode;
             }
             catch { return false; }
         }
@@ -138,15 +124,11 @@ namespace SmartX.Services
 
         public async Task<List<CommandRecord>> GetCommandHistoryAsync()
         {
-            try
-            {
-                AttachAuth();
-                return await _http.GetFromJsonAsync<List<CommandRecord>>("/api/commands/history") ?? new();
-            }
+            try { AttachAuth(); return await _http.GetFromJsonAsync<List<CommandRecord>>("/api/commands/history") ?? new(); }
             catch { return new(); }
         }
 
-        // --- PREDICTIVE ---
+        // ---------- PREDICTIVE ----------
         public async Task<List<Prediction>> LogSearchAsync(string term, string category)
         {
             try
@@ -154,7 +136,7 @@ namespace SmartX.Services
                 AttachAuth();
                 var res = await _http.PostAsJsonAsync("/api/search", new { Term = term, Category = category });
                 if (!res.IsSuccessStatusCode) return new();
-                var wrapper = await res.Content.ReadFromJsonAsync<SearchSuggestionsResponse>();
+                var wrapper = await res.Content.ReadFromJsonAsync<SearchWrapper>();
                 return wrapper?.Suggestions ?? new();
             }
             catch { return new(); }
@@ -162,56 +144,41 @@ namespace SmartX.Services
 
         public async Task<List<Prediction>> GetInsightsAsync()
         {
-            try
-            {
-                AttachAuth();
-                return await _http.GetFromJsonAsync<List<Prediction>>("/api/insights") ?? new();
-            }
+            try { AttachAuth(); return await _http.GetFromJsonAsync<List<Prediction>>("/api/insights") ?? new(); }
             catch { return new(); }
         }
 
-        // --- FILE UPLOAD ---
-        public async Task<(bool ok, string message)> UploadDeviceFileAsync(string macAddress, string filePath)
+        // ---------- FILES ----------
+        public async Task<(bool Ok, string Message, int Imported)> UploadDeviceFileAsync(string mac, string filePath)
         {
             try
             {
-                if (!File.Exists(filePath)) return (false, "File not found.");
+                if (!File.Exists(filePath)) return (false, "File not found.", 0);
                 AttachAuth();
 
                 using var content = new MultipartFormDataContent();
-                using var fileStream = File.OpenRead(filePath);
-                using var streamContent = new StreamContent(fileStream);
-                content.Add(streamContent, "file", Path.GetFileName(filePath));
+                using var fs = File.OpenRead(filePath);
+                using var sc = new StreamContent(fs);
+                content.Add(sc, "file", Path.GetFileName(filePath));
 
-                var res = await _http.PostAsync($"/api/sensors/{macAddress}/upload", content);
+                var res = await _http.PostAsync($"/api/sensors/{mac}/upload", content);
                 var body = await res.Content.ReadAsStringAsync();
-                return (res.IsSuccessStatusCode, body);
+                if (!res.IsSuccessStatusCode) return (false, body, 0);
+
+                using var doc = JsonDocument.Parse(body);
+                int imported = doc.RootElement.TryGetProperty("devicesImported", out var imp) ? imp.GetInt32() : 0;
+                return (true, body, imported);
             }
-            catch (Exception ex) { return (false, ex.Message); }
+            catch (Exception ex) { return (false, ex.Message, 0); }
         }
 
         public async Task<bool> PostIssueAsync(string description)
         {
-            try
-            {
-                AttachAuth();
-                var res = await _http.PostAsJsonAsync("/api/issues", new { Description = description });
-                return res.IsSuccessStatusCode;
-            }
+            try { AttachAuth(); return (await _http.PostAsJsonAsync("/api/issues", new { Description = description })).IsSuccessStatusCode; }
             catch { return false; }
         }
 
-        public async Task<List<SensorRegistration>> GetSensorsAsync()
-        {
-            try
-            {
-                AttachAuth();
-                return await _http.GetFromJsonAsync<List<SensorRegistration>>("/api/devices") ?? new();
-            }
-            catch { return new(); }
-        }
-
-        // --- Response DTOs ---
+        // ---------- DTOs ----------
         private class LoginResponse
         {
             public string UserId { get; set; } = "";
@@ -219,11 +186,7 @@ namespace SmartX.Services
             public string Token { get; set; } = "";
             public DateTime ExpiresUtc { get; set; }
         }
-
-        private class SearchSuggestionsResponse
-        {
-            public List<Prediction> Suggestions { get; set; } = new();
-        }
+        private class SearchWrapper { public List<Prediction> Suggestions { get; set; } = new(); }
     }
 
     public class TelemetryPoint
@@ -233,6 +196,12 @@ namespace SmartX.Services
         public string Unit { get; set; } = "";
         public DateTime Timestamp { get; set; }
         public bool IsCritical { get; set; }
+    }
+
+    public class QueueSnapshot
+    {
+        public List<object>? Standard { get; set; }
+        public List<object>? Critical { get; set; }
     }
 
     public class UndoResult

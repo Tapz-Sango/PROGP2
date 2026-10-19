@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using SmartX.Services;
 
 namespace SmartX.Views
 {
@@ -8,8 +9,6 @@ namespace SmartX.Views
         public LandingView() => InitializeComponent();
 
         private void BtnEnter_Click(object sender, RoutedEventArgs e)
-        {
-            MainWindow.Instance!.NavigateTo(new LoginView());
-        }
+            => NavigationService.GoToLogin();
     }
 }
