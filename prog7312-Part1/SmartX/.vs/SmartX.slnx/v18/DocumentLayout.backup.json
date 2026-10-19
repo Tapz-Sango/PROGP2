@@ -1,0 +1,83 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{208F12F6-66D8-9CDD-E8AF-E246E212901F}|SmartX\\SmartX.csproj|c:\\users\\emeris\\desktop\\prog7312-part1\\smartx\\smartx\\views\\commandstreamview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{208F12F6-66D8-9CDD-E8AF-E246E212901F}|SmartX\\SmartX.csproj|solutionrelative:smartx\\views\\commandstreamview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{208F12F6-66D8-9CDD-E8AF-E246E212901F}|SmartX\\SmartX.csproj|c:\\users\\emeris\\desktop\\prog7312-part1\\smartx\\smartx\\views\\loginview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{208F12F6-66D8-9CDD-E8AF-E246E212901F}|SmartX\\SmartX.csproj|solutionrelative:smartx\\views\\loginview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{208F12F6-66D8-9CDD-E8AF-E246E212901F}|SmartX\\SmartX.csproj|c:\\users\\emeris\\desktop\\prog7312-part1\\smartx\\smartx\\views\\loginview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{208F12F6-66D8-9CDD-E8AF-E246E212901F}|SmartX\\SmartX.csproj|solutionrelative:smartx\\views\\loginview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{208F12F6-66D8-9CDD-E8AF-E246E212901F}|SmartX\\SmartX.csproj|c:\\users\\emeris\\desktop\\prog7312-part1\\smartx\\smartx\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{208F12F6-66D8-9CDD-E8AF-E246E212901F}|SmartX\\SmartX.csproj|solutionrelative:smartx\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "CommandStreamView.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\Views\\CommandStreamView.xaml.cs",
+              "RelativeDocumentMoniker": "SmartX\\Views\\CommandStreamView.xaml.cs",
+              "ToolTip": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\Views\\CommandStreamView.xaml.cs",
+              "RelativeToolTip": "SmartX\\Views\\CommandStreamView.xaml.cs",
+              "ViewState": "AgIAANwAAAAAAAAAAAAkwOgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-15T12:49:13.206Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "LoginView.xaml",
+              "DocumentMoniker": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\Views\\LoginView.xaml",
+              "RelativeDocumentMoniker": "SmartX\\Views\\LoginView.xaml",
+              "ToolTip": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\Views\\LoginView.xaml",
+              "RelativeToolTip": "SmartX\\Views\\LoginView.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-10-15T12:46:51.517Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "LoginView.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\Views\\LoginView.xaml.cs",
+              "RelativeDocumentMoniker": "SmartX\\Views\\LoginView.xaml.cs",
+              "ToolTip": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\Views\\LoginView.xaml.cs",
+              "RelativeToolTip": "SmartX\\Views\\LoginView.xaml.cs",
+              "ViewState": "AgIAABMAAAAAAAAAAADwvyUAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-15T12:44:17.881Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "SmartX\\MainWindow.xaml",
+              "ToolTip": "C:\\Users\\emeris\\Desktop\\prog7312-Part1\\SmartX\\SmartX\\MainWindow.xaml",
+              "RelativeToolTip": "SmartX\\MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-09-14T11:54:01.369Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
